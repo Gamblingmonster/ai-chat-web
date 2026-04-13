@@ -46,6 +46,18 @@
               <template v-else>
                 {{ msg.content || (loading && index === currentSession.messages.length - 1 ? '...' : '') }}
               </template>
+              
+              <!-- 语音播报按钮 (仅限助手消息) -->
+              <div v-if="msg.role === 'assistant' && msg.content" class="msg-tools">
+                <button 
+                  @click="toggleSpeak(msg.content, index)" 
+                  :class="['speak-btn', { 'is-speaking': speakingMsgIndex === index }]"
+                  title="语音播报"
+                >
+                  <span v-if="speakingMsgIndex === index" class="speaking-icon">🔊</span>
+                  <span v-else class="speaker-icon">🔈</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -69,9 +81,18 @@
           </button>
         </div>
         <div class="input-wrapper">
+          <!-- 语音录入按钮 -->
+          <button 
+            @click="toggleRecording" 
+            :class="['mic-btn', { 'is-recording': isRecording }]"
+            title="语音输入"
+          >
+            <span v-if="isRecording" class="recording-icon">🎤</span>
+            <span v-else>🎙️</span>
+          </button>
           <textarea 
             v-model="inputText" 
-            placeholder="输入您的问题..." 
+            :placeholder="isRecording ? '正在录音...' : '输入您的问题...'" 
             @keydown.enter.prevent="handleSend"
             :disabled="loading"
           ></textarea>
@@ -95,6 +116,84 @@ const { createNewSession, switchSession, sendMessage } = chatStore
 
 const inputText = ref('')
 const chatAreaRef = ref(null)
+
+// --- 语音交互逻辑 ---
+
+// 1. 语音转文字 (STT)
+const isRecording = ref(false)
+let recognition = null
+
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  recognition = new SpeechRecognition()
+  recognition.lang = 'zh-CN'
+  recognition.continuous = true
+  recognition.interimResults = true
+
+  recognition.onresult = (event) => {
+    let interimTranscript = ''
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        inputText.value += event.results[i][0].transcript
+      } else {
+        interimTranscript += event.results[i][0].transcript
+      }
+    }
+  }
+
+  recognition.onend = () => {
+    isRecording.value = false
+  }
+
+  recognition.onerror = (event) => {
+    console.error('Speech recognition error:', event.error)
+    isRecording.value = false
+  }
+}
+
+const toggleRecording = () => {
+  if (!recognition) {
+    alert('您的浏览器不支持语音输入功能')
+    return
+  }
+
+  if (isRecording.value) {
+    recognition.stop()
+  } else {
+    isRecording.value = true
+    recognition.start()
+  }
+}
+
+// 2. 文字转语音 (TTS)
+const speakingMsgIndex = ref(null)
+const synth = window.speechSynthesis
+let utterance = null
+
+const toggleSpeak = (text, index) => {
+  if (speakingMsgIndex.value === index) {
+    // 如果正在播报当前消息，则停止
+    synth.cancel()
+    speakingMsgIndex.value = null
+    return
+  }
+
+  // 停止之前的播报
+  synth.cancel()
+
+  // 开始新的播报
+  utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = 'zh-CN'
+  utterance.rate = 1.0
+  utterance.pitch = 1.0
+
+  utterance.onend = () => {
+    speakingMsgIndex.value = null
+  }
+
+  speakingMsgIndex.value = index
+  synth.speak(utterance)
+}
 
 const toggleWebSearch = () => {
   if (useImageGen.value) return
@@ -270,6 +369,39 @@ onMounted(() => {
   color: white;
 }
 
+/* 消息工具栏 (语音播报) */
+.msg-tools {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.speak-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.speak-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.speak-btn.is-speaking .speaking-icon {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* 图片卡片样式 */
 .image-card {
   max-width: 100%;
@@ -398,6 +530,37 @@ onMounted(() => {
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   padding: 10px;
+}
+
+/* 语音输入按钮 */
+.mic-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+  font-size: 20px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  margin-right: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mic-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.mic-btn.is-recording {
+  background-color: #fee2e2;
+  color: #ef4444;
+  animation: recording-pulse 1.5s infinite;
+}
+
+@keyframes recording-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
 textarea {

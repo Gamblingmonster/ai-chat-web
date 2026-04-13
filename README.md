@@ -16,6 +16,7 @@
 ## 🛠️ 技术栈
 
 ### 前端 (ai-chat-front)
+
 - **框架**: Vue 3 (Composition API)
 - **构建工具**: Vite
 - **状态管理**: Pinia
@@ -23,6 +24,7 @@
 - **网络请求**: Fetch API (用于流式数据读取)
 
 ### 后端 (ai-chat-back)
+
 - **环境**: Node.js
 - **框架**: Express
 - **AI SDK**: OpenAI Node.js SDK (适配 DashScope 兼容模式)
@@ -49,18 +51,23 @@ ai-chat-web/
 ## 🚀 快速开始
 
 ### 1. 克隆项目
+
 ```bash
 git clone https://github.com/Gamblingmonster/ai-chat-web.git
 cd ai-chat-web
 ```
 
 ### 2. 后端配置与启动
+
 进入后端目录：
+
 ```bash
 cd ai-chat-back
 npm install
 ```
+
 在 `ai-chat-back` 目录下创建 `.env` 文件并填入您的 API Key：
+
 ```env
 # 通义千问 API Key
 DASHSCOPE_API_KEY=您的通义千问API_KEY
@@ -68,18 +75,24 @@ DASHSCOPE_API_KEY=您的通义千问API_KEY
 SERPER_API_KEY=您的SERPER_API_KEY
 PORT=3000
 ```
+
 启动后端服务：
+
 ```bash
 npm start
 ```
 
 ### 3. 前端配置与启动
+
 进入前端目录：
+
 ```bash
 cd ../ai-chat-front
 npm install
 ```
+
 启动前端开发服务器：
+
 ```bash
 npm run dev
 ```
@@ -87,13 +100,13 @@ npm run dev
 访问浏览器：`http://localhost:5173/chat` 即可开始体验！
 
 ## 📝 提交记录
+
 - **Day 1**: 完成前后端骨架搭建，实现 SSE 流式接口及前端打字机效果，完成多会话逻辑。
-- **Day 2**: 
-  - 实现 AI 思考状态动画。
-  - 集成 Serper.dev 联网搜索功能。
-  - 集成 Pollinations.ai 图片生成功能 (Flux 模型)。
-  - 优化 UI 交互逻辑 (功能互斥切换、按钮式开关)。
-  - 修复全局布局溢出与对齐问题。
+- **Day 2**: 实现 AI 思考状态动画，集成 Serper.dev 联网搜索功能。
+- **Day 3**: 集成 Pollinations.ai 图片生成功能 (Flux 模型)，优化 UI 交互逻辑 (功能互斥切换、按钮式开关)，修复全局布局溢出与对齐问题。
+
+* **Day 4**: 实现基于 Web Speech API 的语音转文字 (STT) 功能)，实现基于 SpeechSynthesis 的文字转语音 (TTS) 功能，添加语音交互 UI (麦克风录音动画、小喇叭播报动画)。
 
 ## 📄 开源协议
+
 [MIT License](LICENSE)
