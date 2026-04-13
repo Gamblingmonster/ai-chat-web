@@ -37,9 +37,15 @@
             <div v-else class="text">
               <template v-if="msg.imageUrl">
                 <div class="image-card">
-                  <img :src="msg.imageUrl" alt="AI Generated Image" @load="scrollToBottom" referrerpolicy="no-referrer">
+                  <img 
+                    :src="msg.imageUrl" 
+                    alt="AI Generated Image" 
+                    @load="scrollToBottom" 
+                    @error="handleImageError($event, index)"
+                    referrerpolicy="no-referrer"
+                  >
                   <div class="image-actions">
-                    <a :href="msg.imageUrl" target="_blank" class="download-link">查看原图</a>
+                    <a :href="msg.imageUrl" target="_blank" class="download-link" referrerpolicy="no-referrer">查看原图</a>
                   </div>
                 </div>
               </template>
@@ -213,6 +219,17 @@ const handleSend = async () => {
   const text = inputText.value
   inputText.value = ''
   await sendMessage(text)
+}
+
+// 图片加载失败处理
+const handleImageError = (event, index) => {
+  console.error('图片加载失败:', event)
+  // 如果加载失败，可以尝试重新加载或给个提示
+  const msg = currentSession.value.messages[index]
+  if (msg && msg.imageUrl) {
+    // 可以在这里做重试逻辑，或者直接提示用户
+    // msg.content = '图片生成成功，但加载失败了，请点击“查看原图”直接打开。'
+  }
 }
 
 // 自动滚动到底部

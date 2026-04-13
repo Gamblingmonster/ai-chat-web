@@ -96,7 +96,8 @@ exports.generateImage = async (req, res) => {
 
     try {
         const encodedPrompt = encodeURIComponent(prompt);
-        const imageUrl = `https://pollinations.ai/p/${encodedPrompt}?width=1024&height=1024&seed=${Math.floor(Math.random() * 1000000)}&model=flux&nologo=true`;
+        // 使用更兼容的 image. 子域名，并加入 turbo 模型提升速度
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${Math.floor(Math.random() * 1000000)}&model=turbo&nologo=true&safe=true`;
         
         res.json({ imageUrl });
     } catch (error) {
