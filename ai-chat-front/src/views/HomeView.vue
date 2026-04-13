@@ -11,3 +11,10 @@ export default {
   name: 'HomeView'
 }
 </script>
+
+<style scoped>
+.home {
+  text-align: center;
+  padding-top: 50px;
+}
+</style>
