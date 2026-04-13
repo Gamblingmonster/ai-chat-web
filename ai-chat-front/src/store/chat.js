@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { chatApi } from '../api/chat'
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
@@ -57,14 +58,9 @@ export const useChatStore = defineStore('chat', {
       this.addMessage({ role: 'assistant', content: '', isThinking: true })
 
       try {
-        // 如果开启了图片生成
+        // 1. 如果开启了图片生成
         if (this.useImageGen) {
-          const response = await fetch('http://localhost:3000/api/image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: content })
-          })
-          const data = await response.json()
+          const data = await chatApi.generateImage(content)
           if (data.imageUrl) {
             this.updateLastMessage('') // 停止思考
             const session = this.currentSession
@@ -79,15 +75,10 @@ export const useChatStore = defineStore('chat', {
         // 使用 JSON 序列化实现深拷贝，避免修改原消息内容
         let finalMessages = JSON.parse(JSON.stringify(this.messages.slice(0, -1)))
 
-        // 联网搜索逻辑
+        // 2. 联网搜索逻辑
         if (this.useWebSearch) {
           try {
-            const searchRes = await fetch('http://localhost:3000/api/search', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ query: content })
-            })
-            const searchData = await searchRes.json()
+            const searchData = await chatApi.search(content)
             if (searchData.results && searchData.results.length > 0) {
               const context = searchData.results.map(r => `标题: ${r.title}\n链接: ${r.link}\n摘要: ${r.snippet}`).join('\n\n')
               const searchPrompt = `以下是来自互联网的搜索结果，请结合这些结果回答用户的问题：\n\n${context}\n\n用户的问题是：${content}`
@@ -100,15 +91,8 @@ export const useChatStore = defineStore('chat', {
           }
         }
 
-        const response = await fetch('http://localhost:3000/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            messages: finalMessages
-          })
-        })
+        // 3. 发送聊天请求 (流式)
+        const response = await chatApi.sendMessageStream(finalMessages)
 
         if (!response.ok) throw new Error('网络请求失败')
 
