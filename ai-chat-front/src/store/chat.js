@@ -6,7 +6,8 @@ export const useChatStore = defineStore('chat', {
       { id: 1, name: '默认会话', messages: [] }
     ],
     currentSessionId: 1,
-    loading: false
+    loading: false,
+    useWebSearch: false // 联网搜索开关
   }),
   getters: {
     currentSession: (state) => state.sessions.find(s => s.id === state.currentSessionId),
@@ -55,13 +56,37 @@ export const useChatStore = defineStore('chat', {
       this.addMessage({ role: 'assistant', content: '', isThinking: true })
 
       try {
+        // 使用 JSON 序列化实现深拷贝，避免修改原消息内容
+        let finalMessages = JSON.parse(JSON.stringify(this.messages.slice(0, -1)))
+
+        // 联网搜索逻辑
+        if (this.useWebSearch) {
+          try {
+            const searchRes = await fetch('http://localhost:3000/api/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: content })
+            })
+            const searchData = await searchRes.json()
+            if (searchData.results && searchData.results.length > 0) {
+              const context = searchData.results.map(r => `标题: ${r.title}\n链接: ${r.link}\n摘要: ${r.snippet}`).join('\n\n')
+              const searchPrompt = `以下是来自互联网的搜索结果，请结合这些结果回答用户的问题：\n\n${context}\n\n用户的问题是：${content}`
+              
+              // 替换最后一条用户消息的内容为带背景知识的版本
+              finalMessages[finalMessages.length - 1].content = searchPrompt
+            }
+          } catch (e) {
+            console.error('搜索失败，降级为常规对话', e)
+          }
+        }
+
         const response = await fetch('http://localhost:3000/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            messages: this.messages.slice(0, -1) // 发送历史消息，不包含最后一个空的助手消息
+            messages: finalMessages
           })
         })
 

@@ -41,6 +41,12 @@
 
       <!-- 底部输入框 -->
       <div class="input-area">
+        <div class="tools-bar">
+          <label class="search-toggle">
+            <input type="checkbox" v-model="useWebSearch">
+            <span class="toggle-text">🌐 联网搜索</span>
+          </label>
+        </div>
         <div class="input-wrapper">
           <textarea 
             v-model="inputText" 
@@ -63,7 +69,7 @@ import { useChatStore } from '../store/chat'
 import { storeToRefs } from 'pinia'
 
 const chatStore = useChatStore()
-const { sessions, currentSessionId, currentSession, loading } = storeToRefs(chatStore)
+const { sessions, currentSessionId, currentSession, loading, useWebSearch } = storeToRefs(chatStore)
 const { createNewSession, switchSession, sendMessage } = chatStore
 
 const inputText = ref('')
@@ -272,8 +278,38 @@ onMounted(() => {
 
 /* 输入框区域 */
 .input-area {
-  padding: 20px;
+  padding: 10px 20px 20px;
   border-top: 1px solid #eee;
+}
+
+.tools-bar {
+  max-width: 800px;
+  margin: 0 auto 10px;
+  display: flex;
+  gap: 15px;
+}
+
+.search-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  user-select: none;
+}
+
+.search-toggle input {
+  margin-right: 6px;
+  cursor: pointer;
+}
+
+.toggle-text {
+  transition: color 0.2s;
+}
+
+.search-toggle input:checked + .toggle-text {
+  color: #10a37f;
+  font-weight: bold;
 }
 
 .input-wrapper {
