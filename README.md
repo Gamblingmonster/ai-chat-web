@@ -1,13 +1,16 @@
 # AI Chat Web - 豆沙包智能对话系统
 
-这是一个基于 **Vue 3 + Node.js (Express)** 开发的全栈 AI 聊天应用。项目支持流式（Streaming）响应，对接了阿里通义千问（DashScope）大模型，实现了流畅的打字机对话效果。
+这是一个基于 **Vue 3 + Node.js (Express)** 开发的全栈 AI 聊天应用。项目支持流式（Streaming）响应，对接了阿里通义千问（DashScope）大模型，实现了流畅的打字机对话效果，并集成了联网搜索、图片生成等高级功能。
 
 ## 🌟 项目特性
 
 - **流式对话**：基于 SSE (Server-Sent Events) 技术，实现与大模型的实时流式交互。
-- **多会话管理**：支持创建、切换和管理多个聊天会话。
+- **思考模式 (Thinking)**：在 AI 正式回答前提供生动的“思考中...”动画，提升用户体验。
+- **联网搜索**：集成 Serper.dev 接口，支持实时获取互联网信息并注入 AI 上下文进行回答。
+- **AI 图片生成**：集成 Pollinations.ai (Flux 模型)，支持根据文本描述生成高质量图片。
+- **多会话管理**：支持创建、切换和管理多个聊天会话，支持 UI 交互式工具切换。
 - **响应式 UI**：现代化的聊天界面，包含左侧会话历史、右侧对话区域及底部输入框。
-- **状态管理**：使用 Pinia 高效管理应用状态和消息列表。
+- **状态管理**：使用 Pinia 高效管理应用状态、消息列表及功能开关。
 - **环境隔离**：使用 `.env` 保护 API Key 等敏感信息。
 
 ## 🛠️ 技术栈
@@ -23,6 +26,7 @@
 - **环境**: Node.js
 - **框架**: Express
 - **AI SDK**: OpenAI Node.js SDK (适配 DashScope 兼容模式)
+- **网络请求**: Axios (用于搜索 API 调用)
 - **实时通信**: SSE (Server-Sent Events)
 
 ## 📂 项目结构
@@ -30,12 +34,12 @@
 ```text
 ai-chat-web/
 ├── ai-chat-back/        # 后端项目 (Express)
-│   ├── server.js        # 后端核心逻辑
-│   ├── .env             # 环境变量 (API Key)
+│   ├── server.js        # 后端核心逻辑 (API 路由、流式代理)
+│   ├── .env             # 环境变量 (API Key 配置)
 │   └── package.json
 ├── ai-chat-front/       # 前端项目 (Vue 3)
 │   ├── src/
-│   │   ├── store/       # Pinia 状态管理
+│   │   ├── store/       # Pinia 状态管理 (会话逻辑)
 │   │   ├── views/       # 页面组件 (Chat.vue)
 │   │   └── router/      # 路由配置
 │   └── package.json
@@ -46,7 +50,7 @@ ai-chat-web/
 
 ### 1. 克隆项目
 ```bash
-git clone https://github.com/your-username/ai-chat-web.git
+git clone https://github.com/Gamblingmonster/ai-chat-web.git
 cd ai-chat-web
 ```
 
@@ -58,7 +62,10 @@ npm install
 ```
 在 `ai-chat-back` 目录下创建 `.env` 文件并填入您的 API Key：
 ```env
+# 通义千问 API Key
 DASHSCOPE_API_KEY=您的通义千问API_KEY
+# Serper.dev API Key (用于联网搜索)
+SERPER_API_KEY=您的SERPER_API_KEY
 PORT=3000
 ```
 启动后端服务：
@@ -81,6 +88,12 @@ npm run dev
 
 ## 📝 提交记录
 - **Day 1**: 完成前后端骨架搭建，实现 SSE 流式接口及前端打字机效果，完成多会话逻辑。
+- **Day 2**: 
+  - 实现 AI 思考状态动画。
+  - 集成 Serper.dev 联网搜索功能。
+  - 集成 Pollinations.ai 图片生成功能 (Flux 模型)。
+  - 优化 UI 交互逻辑 (功能互斥切换、按钮式开关)。
+  - 修复全局布局溢出与对齐问题。
 
 ## 📄 开源协议
 [MIT License](LICENSE)
