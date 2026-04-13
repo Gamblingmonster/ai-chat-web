@@ -27,7 +27,20 @@ export const useChatStore = defineStore('chat', {
       if (session && session.messages.length > 0) {
         const lastMessage = session.messages[session.messages.length - 1]
         if (lastMessage.role === 'assistant') {
+          // 收到内容，停止思考
+          if (lastMessage.isThinking) {
+            lastMessage.isThinking = false
+          }
           lastMessage.content += content
+        }
+      }
+    },
+    setThinking(status) {
+      const session = this.currentSession
+      if (session && session.messages.length > 0) {
+        const lastMessage = session.messages[session.messages.length - 1]
+        if (lastMessage.role === 'assistant') {
+          lastMessage.isThinking = status
         }
       }
     },
@@ -38,8 +51,8 @@ export const useChatStore = defineStore('chat', {
       this.addMessage({ role: 'user', content })
       this.loading = true
 
-      // 添加一个空的助手消息用于流式接收
-      this.addMessage({ role: 'assistant', content: '' })
+      // 添加一个助手消息，初始状态为思考中
+      this.addMessage({ role: 'assistant', content: '', isThinking: true })
 
       try {
         const response = await fetch('http://localhost:3000/api/chat', {
@@ -82,6 +95,7 @@ export const useChatStore = defineStore('chat', {
         }
       } catch (error) {
         console.error('发送消息出错', error)
+        this.setThinking(false)
         this.updateLastMessage('错误: 无法连接到服务器')
       } finally {
         this.loading = false

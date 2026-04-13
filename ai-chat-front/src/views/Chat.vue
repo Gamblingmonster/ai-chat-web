@@ -28,7 +28,13 @@
           <div class="avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</div>
           <div class="message-content">
             <div class="role-name">{{ msg.role === 'user' ? '你' : '豆沙包' }}</div>
-            <div class="text">{{ msg.content || (loading && index === currentSession.messages.length - 1 ? '...' : '') }}</div>
+            <div v-if="msg.isThinking" class="thinking-container">
+              <span class="thinking-text">思考中</span>
+              <span class="dots">
+                <span>.</span><span>.</span><span>.</span>
+              </span>
+            </div>
+            <div v-else class="text">{{ msg.content || (loading && index === currentSession.messages.length - 1 ? '...' : '') }}</div>
           </div>
         </div>
       </div>
@@ -92,8 +98,10 @@ onMounted(() => {
 <style scoped>
 .chat-container {
   display: flex;
-  height: 100vh;
+  height: 100%;
+  width: 100%;
   background-color: #f5f5f5;
+  overflow: hidden;
 }
 
 /* 侧边栏 */
@@ -220,6 +228,46 @@ onMounted(() => {
 .user .text {
   background-color: #10a37f;
   color: white;
+}
+
+/* 思考中动画 */
+.thinking-container {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f7f7f8;
+  border-radius: 8px;
+  color: #666;
+  font-size: 16px;
+}
+
+.thinking-text {
+  margin-right: 4px;
+}
+.dots {
+  display: inline-flex; /* 让点排列更整齐 */
+  gap: 2px;
+}
+
+.dots span {
+  font-size: 24px;     /* 👈 三个点变大！ */
+  line-height: 1;      /* 👈 保证垂直居中 */
+  animation: blink 1.4s infinite both;
+  font-weight: bold;
+}
+
+.dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes blink {
+  0% { opacity: 0.2; }
+  20% { opacity: 1; }
+  100% { opacity: 0.2; }
 }
 
 /* 输入框区域 */
