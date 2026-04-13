@@ -34,7 +34,19 @@
                 <span>.</span><span>.</span><span>.</span>
               </span>
             </div>
-            <div v-else class="text">{{ msg.content || (loading && index === currentSession.messages.length - 1 ? '...' : '') }}</div>
+            <div v-else class="text">
+              <template v-if="msg.imageUrl">
+                <div class="image-card">
+                  <img :src="msg.imageUrl" alt="AI Generated Image" @load="scrollToBottom" referrerpolicy="no-referrer">
+                  <div class="image-actions">
+                    <a :href="msg.imageUrl" target="_blank" class="download-link">查看原图</a>
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                {{ msg.content || (loading && index === currentSession.messages.length - 1 ? '...' : '') }}
+              </template>
+            </div>
           </div>
         </div>
       </div>
@@ -45,6 +57,10 @@
           <label class="search-toggle">
             <input type="checkbox" v-model="useWebSearch">
             <span class="toggle-text">🌐 联网搜索</span>
+          </label>
+          <label class="search-toggle">
+            <input type="checkbox" v-model="useImageGen">
+            <span class="toggle-text">🎨 生成图片</span>
           </label>
         </div>
         <div class="input-wrapper">
@@ -69,7 +85,7 @@ import { useChatStore } from '../store/chat'
 import { storeToRefs } from 'pinia'
 
 const chatStore = useChatStore()
-const { sessions, currentSessionId, currentSession, loading, useWebSearch } = storeToRefs(chatStore)
+const { sessions, currentSessionId, currentSession, loading, useWebSearch, useImageGen } = storeToRefs(chatStore)
 const { createNewSession, switchSession, sendMessage } = chatStore
 
 const inputText = ref('')
@@ -234,6 +250,37 @@ onMounted(() => {
 .user .text {
   background-color: #10a37f;
   color: white;
+}
+
+/* 图片卡片样式 */
+.image-card {
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.image-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.image-actions {
+  padding: 8px;
+  border-top: 1px solid #eee;
+  text-align: right;
+}
+
+.download-link {
+  font-size: 12px;
+  color: #10a37f;
+  text-decoration: none;
+}
+
+.download-link:hover {
+  text-decoration: underline;
 }
 
 /* 思考中动画 */

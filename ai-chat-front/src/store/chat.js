@@ -7,7 +7,8 @@ export const useChatStore = defineStore('chat', {
     ],
     currentSessionId: 1,
     loading: false,
-    useWebSearch: false // 联网搜索开关
+    useWebSearch: false, // 联网搜索开关
+    useImageGen: false // 图片生成开关
   }),
   getters: {
     currentSession: (state) => state.sessions.find(s => s.id === state.currentSessionId),
@@ -56,6 +57,25 @@ export const useChatStore = defineStore('chat', {
       this.addMessage({ role: 'assistant', content: '', isThinking: true })
 
       try {
+        // 如果开启了图片生成
+        if (this.useImageGen) {
+          const response = await fetch('http://localhost:3000/api/image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: content })
+          })
+          const data = await response.json()
+          if (data.imageUrl) {
+            this.updateLastMessage('') // 停止思考
+            const session = this.currentSession
+            const lastMessage = session.messages[session.messages.length - 1]
+            lastMessage.imageUrl = data.imageUrl
+            lastMessage.isThinking = false
+            this.loading = false
+            return
+          }
+        }
+
         // 使用 JSON 序列化实现深拷贝，避免修改原消息内容
         let finalMessages = JSON.parse(JSON.stringify(this.messages.slice(0, -1)))
 

@@ -56,6 +56,25 @@ app.post('/api/search', async (req, res) => {
     }
 });
 
+// POST /api/image - Image generation endpoint (Using Pollinations.ai)
+app.post('/api/image', async (req, res) => {
+    const { prompt } = req.body;
+    if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    try {
+        // 使用更稳定的路径和模型 (flux)
+        const encodedPrompt = encodeURIComponent(prompt);
+        const imageUrl = `https://pollinations.ai/p/${encodedPrompt}?width=1024&height=1024&seed=${Math.floor(Math.random() * 1000000)}&model=flux&nologo=true`;
+        
+        res.json({ imageUrl });
+    } catch (error) {
+        console.error('Image generation error:', error);
+        res.status(500).json({ error: 'Image generation failed' });
+    }
+});
+
 app.post('/api/chat', async (req, res) => {
     const { messages } = req.body;
 
