@@ -54,14 +54,19 @@
       <!-- 底部输入框 -->
       <div class="input-area">
         <div class="tools-bar">
-          <label class="search-toggle">
-            <input type="checkbox" v-model="useWebSearch">
-            <span class="toggle-text">🌐 联网搜索</span>
-          </label>
-          <label class="search-toggle">
-            <input type="checkbox" v-model="useImageGen">
-            <span class="toggle-text">🎨 生成图片</span>
-          </label>
+          <button 
+            :class="['tool-btn', { active: useWebSearch, disabled: useImageGen }]" 
+            :disabled="useImageGen"
+            @click="toggleWebSearch"
+          >
+            🌐 联网搜索
+          </button>
+          <button 
+            :class="['tool-btn', { active: useImageGen }]" 
+            @click="toggleImageGen"
+          >
+            🎨 生成图片
+          </button>
         </div>
         <div class="input-wrapper">
           <textarea 
@@ -90,6 +95,19 @@ const { createNewSession, switchSession, sendMessage } = chatStore
 
 const inputText = ref('')
 const chatAreaRef = ref(null)
+
+const toggleWebSearch = () => {
+  if (useImageGen.value) return
+  useWebSearch.value = !useWebSearch.value
+}
+
+const toggleImageGen = () => {
+  useImageGen.value = !useImageGen.value
+  // 开启生成图片时，自动关闭联网搜索
+  if (useImageGen.value) {
+    useWebSearch.value = false
+  }
+}
 
 const handleSend = async () => {
   if (!inputText.value.trim() || loading.value) return
@@ -333,30 +351,40 @@ onMounted(() => {
   max-width: 800px;
   margin: 0 auto 10px;
   display: flex;
-  gap: 15px;
+  gap: 10px;
 }
 
-.search-toggle {
+.tool-btn {
   display: flex;
   align-items: center;
-  cursor: pointer;
-  font-size: 14px;
+  padding: 6px 12px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
   color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
   user-select: none;
 }
 
-.search-toggle input {
-  margin-right: 6px;
-  cursor: pointer;
+.tool-btn:hover:not(:disabled) {
+  background-color: #e5e5e5;
 }
 
-.toggle-text {
-  transition: color 0.2s;
-}
-
-.search-toggle input:checked + .toggle-text {
-  color: #10a37f;
+.tool-btn.active {
+  background-color: #343541; /* 深色背景 */
+  color: #10a37f;           /* 亮色字体 */
+  border-color: #343541;
   font-weight: bold;
+}
+
+.tool-btn.disabled, .tool-btn:disabled {
+  background-color: #f9f9f9;
+  color: #ccc;
+  border-color: #eee;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .input-wrapper {
