@@ -27,6 +27,7 @@
 
 - **环境**: Node.js
 - **框架**: Express
+- **数据库**: MongoDB (Mongoose) - 用于会话与消息持久化
 - **AI SDK**: OpenAI Node.js SDK (适配 DashScope 兼容模式)
 - **网络请求**: Axios (用于搜索 API 调用)
 - **实时通信**: SSE (Server-Sent Events)
@@ -57,7 +58,17 @@ git clone https://github.com/Gamblingmonster/ai-chat-web.git
 cd ai-chat-web
 ```
 
-### 2. 后端配置与启动
+### 2. 数据库准备 (MongoDB)
+
+在启动后端服务之前，必须确保 **MongoDB 服务** 已在运行：
+
+- **本地启动**：打开一个新的终端窗口，输入以下命令启动数据库：
+  ```bash
+  mongod
+  ```
+  *(请确保数据库窗口在运行期间保持开启状态)*
+
+### 3. 后端配置与启动
 
 进入后端目录：
 
@@ -73,6 +84,8 @@ npm install
 DASHSCOPE_API_KEY=您的通义千问API_KEY
 # Serper.dev API Key (用于联网搜索)
 SERPER_API_KEY=您的SERPER_API_KEY
+# MongoDB 连接串 (默认本地)
+MONGODB_URI=mongodb://localhost:27017/ai_chat
 PORT=3000
 ```
 
@@ -82,7 +95,7 @@ PORT=3000
 npm start
 ```
 
-### 3. 前端配置与启动
+### 4. 前端配置与启动
 
 进入前端目录：
 
@@ -106,6 +119,8 @@ npm run dev
 - **Day 3**: 集成 Pollinations.ai 图片生成功能 (Flux 模型)，优化 UI 交互逻辑 (功能互斥切换、按钮式开关)，修复全局布局溢出与对齐问题。
 - **Day 4**: 实现基于 Web Speech API 的语音转文字 (STT) 功能，实现基于 SpeechSynthesis 的文字转语音 (TTS) 功能，添加语音交互 UI (麦克风录音动画、小喇叭播报动画)。
 - **Day 5**: 实现文件上传功能 (图片 / 文档)，后端集成 Multer 处理文件存储，并提供静态访问预览。前端实现文件选择、实时预览、上传进度管理及消息附件展示。优化 AI Prompt，支持文件上下文感知回答。
+- **Day 6**: 集成 MongoDB 数据库，实现会话 (Session) 与消息 (Message) 的持久化存储。
+- **Day 7**: 完成前端与数据库接口的全面对接，支持历史记录的加载、重命名与删除。
 
 ## 📄 开源协议
 
