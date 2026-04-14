@@ -1,6 +1,8 @@
 const OpenAI = require('openai');
 const axios = require('axios');
 const fs = require('fs');
+const Message = require('../models/Message');
+const Session = require('../models/Session');
 
 // 通义千问兼容模式
 const client = new OpenAI({
@@ -12,16 +14,36 @@ const client = new OpenAI({
 const SERPER_API_KEY = process.env.SERPER_API_KEY;
 
 /**
- * 聊天接口 (流式响应)
+ * 聊天接口 (流式响应 + 消息保存)
  */
 exports.chat = async (req, res) => {
-    const { messages } = req.body;
+    const { messages, sessionId } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: 'Messages are required' });
     }
 
+    if (!sessionId) {
+        return res.status(400).json({ error: 'Session ID is required' });
+    }
+
     try {
+        // 1. 获取最后一条用户消息
+        const lastUserMsg = messages[messages.length - 1];
+        
+        // 2. 将最后一条用户消息存入数据库 (如果库里还没有)
+        // 注意：前端可能已经传过来了，或者是新消息。我们这里假设是实时保存。
+        const userMsg = new Message({
+            sessionId,
+            role: 'user',
+            content: lastUserMsg.content,
+            file: lastUserMsg.file || null
+        });
+        await userMsg.save();
+
+        // 更新会话的活跃时间
+        await Session.findByIdAndUpdate(sessionId, { updatedAt: Date.now() });
+
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
@@ -35,11 +57,23 @@ exports.chat = async (req, res) => {
 
         const stream = await client.chat.completions.create(completionParams);
 
+        let assistantContent = '';
         for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || '';
             if (content) {
+                assistantContent += content;
                 res.write(`data: ${JSON.stringify({ content })}\n\n`);
             }
+        }
+
+        // 3. 将 AI 回复存入数据库
+        if (assistantContent) {
+            const assistantMsg = new Message({
+                sessionId,
+                role: 'assistant',
+                content: assistantContent
+            });
+            await assistantMsg.save();
         }
 
         res.write('data: [DONE]\n\n');

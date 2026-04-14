@@ -3,32 +3,49 @@ import { chatApi } from '../api/chat'
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
-    sessions: [
-      { id: 1, name: '默认会话', messages: [] }
-    ],
-    currentSessionId: 1,
+    sessions: [],
+    currentSessionId: null,
     loading: false,
     useWebSearch: false, // 联网搜索开关
     useImageGen: false, // 图片生成开关
     attachedFile: null // 当前待发送的文件
   }),
   getters: {
-    currentSession: (state) => state.sessions.find(s => s.id === state.currentSessionId),
+    currentSession: (state) => state.sessions.find(s => s.id === state.currentSessionId || s._id === state.currentSessionId),
     messages: (state) => {
-      const session = state.sessions.find(s => s.id === state.currentSessionId)
+      const session = state.sessions.find(s => s.id === state.currentSessionId || s._id === state.currentSessionId)
       return session ? session.messages : []
     }
   },
   actions: {
+    // 初始化，从后端获取会话列表
+    async init() {
+      try {
+        const sessions = await chatApi.getSessions()
+        this.sessions = sessions.map(s => ({
+          ...s,
+          id: s._id, // 兼容前端使用的 id
+          messages: []
+        }))
+        if (this.sessions.length > 0) {
+          await this.switchSession(this.sessions[0].id)
+        } else {
+          await this.createNewSession()
+        }
+      } catch (error) {
+        console.error('初始化会话失败', error)
+      }
+    },
     addMessage(message) {
       const session = this.currentSession
       if (session) {
+        if (!session.messages) session.messages = []
         session.messages.push(message)
       }
     },
     updateLastMessage(content) {
       const session = this.currentSession
-      if (session && session.messages.length > 0) {
+      if (session && session.messages && session.messages.length > 0) {
         const lastMessage = session.messages[session.messages.length - 1]
         if (lastMessage.role === 'assistant') {
           // 收到内容，停止思考
@@ -41,7 +58,7 @@ export const useChatStore = defineStore('chat', {
     },
     setThinking(status) {
       const session = this.currentSession
-      if (session && session.messages.length > 0) {
+      if (session && session.messages && session.messages.length > 0) {
         const lastMessage = session.messages[session.messages.length - 1]
         if (lastMessage.role === 'assistant') {
           lastMessage.isThinking = status
@@ -87,6 +104,7 @@ export const useChatStore = defineStore('chat', {
             lastMessage.imageUrl = data.imageUrl
             lastMessage.isThinking = false
             this.loading = false
+            // TODO: 这里图片生成的消息也需要持久化，目前后端 chat 接口只处理了文字
             return
           }
         }
@@ -118,7 +136,7 @@ export const useChatStore = defineStore('chat', {
         }
 
         // 3. 发送聊天请求 (流式)
-        const response = await chatApi.sendMessageStream(finalMessages)
+        const response = await chatApi.sendMessageStream(finalMessages, this.currentSessionId)
 
         if (!response.ok) throw new Error('网络请求失败')
 
@@ -156,17 +174,58 @@ export const useChatStore = defineStore('chat', {
         this.loading = false
       }
     },
-    createNewSession() {
-      const id = Date.now()
-      this.sessions.unshift({
-        id,
-        name: `新会话 ${this.sessions.length + 1}`,
-        messages: []
-      })
-      this.currentSessionId = id
+    async createNewSession() {
+      try {
+        const session = await chatApi.createSession(`新会话 ${this.sessions.length + 1}`)
+        const newSession = {
+          ...session,
+          id: session._id,
+          messages: []
+        }
+        this.sessions.unshift(newSession)
+        this.currentSessionId = newSession.id
+      } catch (error) {
+        console.error('创建会话失败', error)
+      }
     },
-    switchSession(id) {
+    async switchSession(id) {
       this.currentSessionId = id
+      const session = this.currentSession
+      // 如果该会话的消息还没加载过，则从后端加载
+      if (session && (!session.messages || session.messages.length === 0)) {
+        try {
+          const messages = await chatApi.getSessionMessages(id)
+          session.messages = messages
+        } catch (error) {
+          console.error('加载消息失败', error)
+        }
+      }
+    },
+    async deleteSession(id) {
+      try {
+        await chatApi.deleteSession(id)
+        this.sessions = this.sessions.filter(s => s.id !== id)
+        if (this.currentSessionId === id) {
+          if (this.sessions.length > 0) {
+            this.switchSession(this.sessions[0].id)
+          } else {
+            this.createNewSession()
+          }
+        }
+      } catch (error) {
+        console.error('删除会话失败', error)
+      }
+    },
+    async renameSession(id, name) {
+      try {
+        const updatedSession = await chatApi.renameSession(id, name)
+        const session = this.sessions.find(s => s.id === id)
+        if (session) {
+          session.name = updatedSession.name
+        }
+      } catch (error) {
+        console.error('重命名会话失败', error)
+      }
     }
   }
 })

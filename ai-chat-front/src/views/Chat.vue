@@ -12,7 +12,19 @@
           :class="['session-item', { active: session.id === currentSessionId }]"
           @click="switchSession(session.id)"
         >
-          <span class="session-name">{{ session.name }}</span>
+          <span class="session-name" v-if="editingId !== session.id">{{ session.name }}</span>
+          <input 
+            v-else 
+            v-model="editingName" 
+            class="rename-input" 
+            @blur="saveRename(session.id)" 
+            @keyup.enter="saveRename(session.id)"
+            ref="renameInputRef"
+          >
+          <div class="session-actions">
+            <button @click.stop="startRename(session)" class="action-btn">✏️</button>
+            <button @click.stop="deleteSession(session.id)" class="action-btn">🗑️</button>
+          </div>
         </div>
       </div>
     </div>
@@ -156,11 +168,31 @@ import { storeToRefs } from 'pinia'
 
 const chatStore = useChatStore()
 const { sessions, currentSessionId, currentSession, loading, useWebSearch, useImageGen, attachedFile } = storeToRefs(chatStore)
-const { createNewSession, switchSession, sendMessage } = chatStore
+const { createNewSession, switchSession, sendMessage, deleteSession, renameSession } = chatStore
 
 const inputText = ref('')
 const chatAreaRef = ref(null)
 const fileInputRef = ref(null)
+const renameInputRef = ref(null)
+const editingId = ref(null)
+const editingName = ref('')
+
+const startRename = (session) => {
+  editingId.value = session.id
+  editingName.value = session.name
+  nextTick(() => {
+    renameInputRef.value?.[0]?.focus()
+  })
+}
+
+const saveRename = async (id) => {
+  if (editingId.value === id) {
+    if (editingName.value.trim() && editingName.value !== chatStore.sessions.find(s => s.id === id)?.name) {
+      await renameSession(id, editingName.value)
+    }
+    editingId.value = null
+  }
+}
 
 const triggerFileInput = () => {
   fileInputRef.value?.click()
@@ -302,7 +334,8 @@ watch(() => currentSession.value?.messages, () => {
   scrollToBottom()
 }, { deep: true })
 
-onMounted(() => {
+onMounted(async () => {
+  await chatStore.init()
   scrollToBottom()
 })
 </script>
@@ -356,9 +389,50 @@ onMounted(() => {
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.session-name {
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.rename-input {
+  flex: 1;
+  background-color: #40414f;
+  border: 1px solid #10a37f;
+  color: white;
+  padding: 2px 5px;
+  border-radius: 3px;
+  width: 100%;
+}
+
+.session-actions {
+  display: none;
+  gap: 4px;
+}
+
+.session-item:hover .session-actions,
+.session-item.active .session-actions {
+  display: flex;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.action-btn:hover {
+  opacity: 1;
 }
 
 .session-item:hover {
