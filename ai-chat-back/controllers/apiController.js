@@ -15,7 +15,7 @@ const SERPER_API_KEY = process.env.SERPER_API_KEY;
  * 聊天接口 (流式响应)
  */
 exports.chat = async (req, res) => {
-    const { messages, file_id } = req.body;
+    const { messages } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: 'Messages are required' });
@@ -32,14 +32,6 @@ exports.chat = async (req, res) => {
             messages: messages,
             stream: true,
         };
-
-        // 如果有文件 ID，将其添加到最后一条用户消息中（千问兼容模式支持此方式或在 messages 数组中加入文件引用）
-        // 注：对于兼容模式，通常是将 file_id 放入消息内容中或使用特定的 system prompt 告知
-        if (file_id) {
-            const lastMsg = messages[messages.length - 1];
-            // 在内容开头告知 AI 有附件
-            lastMsg.content = `[附件文件 ID: ${file_id}]\n${lastMsg.content}`;
-        }
 
         const stream = await client.chat.completions.create(completionParams);
 
@@ -119,40 +111,39 @@ exports.generateImage = async (req, res) => {
 };
 
 /**
- * 文件上传接口 (本地 + 通义千问服务)
+ * 文件上传接口 (本地 + 内容解析)
  */
 exports.uploadFile = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    let qwenFileId = null;
+    let parsedContent = null;
 
     try {
-        // 1. 上传到通义千问文件服务 (OpenAI 兼容接口)
-        // 只有特定的文档类型支持解析，这里尝试上传
-        try {
-            const fileStream = fs.createReadStream(req.file.path);
-            const qwenFile = await client.files.create({
-                file: fileStream,
-                purpose: 'file-extract', // 千问解析用途
-            });
-            qwenFileId = qwenFile.id;
-            console.log('Qwen file uploaded:', qwenFileId);
-        } catch (fileError) {
-            console.warn('Qwen file upload failed (might not support this format):', fileError.message);
-            // 即使上传千问失败，也允许继续使用本地预览
+        // 1. 如果是文本类型文件，尝试直接读取内容
+        const isText = req.file.mimetype.startsWith('text/') || 
+                       req.file.originalname.match(/\.(txt|md|json|js|vue|html|css|py|c|cpp|h|ts)$/) ||
+                       req.file.originalname.endsWith('.txt');
+
+        if (isText) {
+            try {
+                parsedContent = fs.readFileSync(req.file.path, 'utf-8');
+                console.log('File content parsed successfully');
+            } catch (readError) {
+                console.warn('Failed to read file content:', readError.message);
+            }
         }
 
         const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
         res.json({
-            message: 'File uploaded successfully',
+            message: 'File uploaded and parsed successfully',
             file: {
                 name: req.file.originalname,
                 filename: req.file.filename,
                 path: req.file.path,
                 url: fileUrl,
-                qwen_file_id: qwenFileId, // 返回给前端的千问 ID
+                parsed_content: parsedContent, // 将解析出的内容返回给前端
                 mimetype: req.file.mimetype,
                 size: req.file.size
             }

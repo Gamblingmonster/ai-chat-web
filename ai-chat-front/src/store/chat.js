@@ -93,9 +93,13 @@ export const useChatStore = defineStore('chat', {
 
         // 使用 JSON 序列化实现深拷贝，避免修改原消息内容
         let finalMessages = JSON.parse(JSON.stringify(this.messages.slice(0, -1)))
+        let lastUserMessage = finalMessages[finalMessages.length - 1]
 
-        // 提取上传成功的千问文件 ID
-        const qwenFileId = uploadedFileData?.qwen_file_id;
+        // 如果有文件解析出的内容，将其合并到当前发送的消息中
+        if (uploadedFileData?.parsed_content) {
+          const fileContext = `以下是上传文件 "${uploadedFileData.name}" 的内容：\n\n${uploadedFileData.parsed_content}\n\n请结合以上文件内容回答用户的问题。`
+          lastUserMessage.content = `${fileContext}\n\n用户的问题是：${content}`
+        }
 
         // 2. 联网搜索逻辑
         if (this.useWebSearch) {
@@ -106,15 +110,15 @@ export const useChatStore = defineStore('chat', {
               const searchPrompt = `以下是来自互联网的搜索结果，请结合这些结果回答用户的问题：\n\n${context}\n\n用户的问题是：${content}`
               
               // 替换最后一条用户消息的内容为带背景知识的版本
-              finalMessages[finalMessages.length - 1].content = searchPrompt
+              lastUserMessage.content = searchPrompt
             }
           } catch (e) {
             console.error('搜索失败，降级为常规对话', e)
           }
         }
 
-        // 3. 发送聊天请求 (流式) - 携带 qwenFileId
-        const response = await chatApi.sendMessageStream(finalMessages, qwenFileId)
+        // 3. 发送聊天请求 (流式)
+        const response = await chatApi.sendMessageStream(finalMessages)
 
         if (!response.ok) throw new Error('网络请求失败')
 
