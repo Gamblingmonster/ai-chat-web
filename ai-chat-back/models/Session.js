@@ -15,10 +15,9 @@ const SessionSchema = new mongoose.Schema({
     }
 });
 
-// 每次更新会话名或有新消息时更新 updatedAt
-SessionSchema.pre('save', function(next) {
+// 每次更新前更新 updatedAt
+SessionSchema.pre('save', function() {
     this.updatedAt = Date.now();
-    next();
 });
 
 module.exports = mongoose.model('Session', SessionSchema);
