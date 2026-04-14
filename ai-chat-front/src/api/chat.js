@@ -7,10 +7,10 @@ export const chatApi = {
   /**
    * 发送聊天消息 (流式)
    */
-  async sendMessageStream(messages) {
+  async sendMessageStream(messages, file_id = null) {
     return await request('/chat', {
       method: 'POST',
-      body: { messages }
+      body: { messages, file_id }
     });
   },
 
