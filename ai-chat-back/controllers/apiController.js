@@ -135,19 +135,28 @@ exports.uploadFile = async (req, res) => {
             }
         }
 
-        const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
-        res.json({
+        // 构造返回数据
+        const responseData = {
             message: 'File uploaded and parsed successfully',
             file: {
                 name: req.file.originalname,
                 filename: req.file.filename,
-                path: req.file.path,
-                url: fileUrl,
                 parsed_content: parsedContent, // 将解析出的内容返回给前端
                 mimetype: req.file.mimetype,
                 size: req.file.size
             }
-        });
+        };
+
+        // 核心修改：在返回响应后（或之前）删除本地文件，防止堆积
+        // 由于我们已经读取了内容，本地文件不再需要
+        try {
+            fs.unlinkSync(req.file.path);
+            console.log(`Temp file deleted: ${req.file.path}`);
+        } catch (unlinkError) {
+            console.warn('Failed to delete temp file:', unlinkError.message);
+        }
+
+        res.json(responseData);
     } catch (error) {
         console.error('File upload error:', error);
         res.status(500).json({ error: 'File upload failed' });

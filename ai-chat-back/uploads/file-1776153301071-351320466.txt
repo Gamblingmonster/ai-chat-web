@@ -1,1 +1,0 @@
-﻿Hello, this is a UTF-8 test file.
