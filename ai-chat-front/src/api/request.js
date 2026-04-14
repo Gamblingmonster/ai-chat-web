@@ -6,7 +6,10 @@ const BASE_URL = 'http://localhost:3000/api';
 export const request = async (url, options = {}) => {
   const { method = 'GET', headers = {}, body } = options;
 
-  const defaultHeaders = {
+  // 如果 body 是 FormData，不要设置默认的 Content-Type，让浏览器自动处理
+  const isFormData = body instanceof FormData;
+  
+  const defaultHeaders = isFormData ? { ...headers } : {
     'Content-Type': 'application/json',
     ...headers,
   };
@@ -17,8 +20,10 @@ export const request = async (url, options = {}) => {
     ...options,
   };
 
-  if (body && typeof body === 'object') {
+  if (body && typeof body === 'object' && !isFormData) {
     config.body = JSON.stringify(body);
+  } else {
+    config.body = body;
   }
 
   try {

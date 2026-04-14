@@ -35,6 +35,20 @@
               </span>
             </div>
             <div v-else class="text">
+              <!-- 用户消息中包含附件文件 -->
+              <template v-if="msg.file">
+                <div class="file-attachment">
+                  <div v-if="msg.file.mimetype.startsWith('image/')" class="image-preview">
+                    <img :src="msg.file.url" alt="Attachment" @load="scrollToBottom" referrerpolicy="no-referrer">
+                  </div>
+                  <div v-else class="file-info">
+                    <span class="file-icon">📄</span>
+                    <span class="file-name">{{ msg.file.name }}</span>
+                    <a :href="msg.file.url" target="_blank" class="download-link">下载</a>
+                  </div>
+                </div>
+              </template>
+
               <template v-if="msg.imageUrl">
                 <div class="image-card">
                   <img 
@@ -71,6 +85,16 @@
 
       <!-- 底部输入框 -->
       <div class="input-area">
+        <!-- 文件预览区 -->
+        <div v-if="attachedFile" class="file-preview-bar">
+          <div class="preview-item">
+            <span v-if="attachedFile.type.startsWith('image/')" class="preview-thumb">🖼️</span>
+            <span v-else class="preview-thumb">📄</span>
+            <span class="preview-name">{{ attachedFile.name }}</span>
+            <button @click="removeFile" class="remove-file-btn">×</button>
+          </div>
+        </div>
+
         <div class="tools-bar">
           <button 
             :class="['tool-btn', { active: useWebSearch, disabled: useImageGen }]" 
@@ -85,6 +109,16 @@
           >
             🎨 生成图片
           </button>
+          <!-- 文件选择按钮 -->
+          <button class="tool-btn" @click="triggerFileInput" :disabled="loading">
+            📁 上传文件
+          </button>
+          <input 
+            type="file" 
+            ref="fileInputRef" 
+            style="display: none" 
+            @change="handleFileChange"
+          >
         </div>
         <div class="input-wrapper">
           <!-- 语音录入按钮 -->
@@ -117,11 +151,42 @@ import { useChatStore } from '../store/chat'
 import { storeToRefs } from 'pinia'
 
 const chatStore = useChatStore()
-const { sessions, currentSessionId, currentSession, loading, useWebSearch, useImageGen } = storeToRefs(chatStore)
+const { sessions, currentSessionId, currentSession, loading, useWebSearch, useImageGen, attachedFile } = storeToRefs(chatStore)
 const { createNewSession, switchSession, sendMessage } = chatStore
 
 const inputText = ref('')
 const chatAreaRef = ref(null)
+const fileInputRef = ref(null)
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click()
+}
+
+const handleFileChange = (e) => {
+  const file = e.target.files[0]
+  if (file) {
+    attachedFile.value = file
+  }
+  // 重置 input 以便同一个文件可以再次选择
+  e.target.value = ''
+}
+
+const removeFile = () => {
+  attachedFile.value = null
+}
+
+const toggleWebSearch = () => {
+  if (useImageGen.value) return
+  useWebSearch.value = !useWebSearch.value
+}
+
+const toggleImageGen = () => {
+  useImageGen.value = !useImageGen.value
+  // 开启生成图片时，自动关闭联网搜索
+  if (useImageGen.value) {
+    useWebSearch.value = false
+  }
+}
 
 // --- 语音交互逻辑 ---
 
@@ -201,21 +266,8 @@ const toggleSpeak = (text, index) => {
   synth.speak(utterance)
 }
 
-const toggleWebSearch = () => {
-  if (useImageGen.value) return
-  useWebSearch.value = !useWebSearch.value
-}
-
-const toggleImageGen = () => {
-  useImageGen.value = !useImageGen.value
-  // 开启生成图片时，自动关闭联网搜索
-  if (useImageGen.value) {
-    useWebSearch.value = false
-  }
-}
-
 const handleSend = async () => {
-  if (!inputText.value.trim() || loading.value) return
+  if ((!inputText.value.trim() && !attachedFile.value) || loading.value) return
   const text = inputText.value
   inputText.value = ''
   await sendMessage(text)
@@ -384,6 +436,86 @@ onMounted(() => {
 .user .text {
   background-color: #10a37f;
   color: white;
+}
+
+/* 文件附件样式 */
+.file-attachment {
+  margin-bottom: 10px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.user .file-attachment {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.file-attachment .image-preview img {
+  max-width: 100%;
+  max-height: 300px;
+  display: block;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  gap: 10px;
+}
+
+.file-name {
+  flex: 1;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 底部文件预览条 */
+.file-preview-bar {
+  max-width: 800px;
+  margin: 0 auto 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 5px 10px;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.preview-thumb {
+  font-size: 18px;
+}
+
+.preview-name {
+  font-size: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove-file-btn {
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
 }
 
 /* 消息工具栏 (语音播报) */

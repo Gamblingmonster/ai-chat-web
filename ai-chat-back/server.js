@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const apiRoutes = require('./routes/api');
 
 const app = express();
@@ -9,6 +10,9 @@ const port = process.env.PORT || 3000;
 // 中间件配置
 app.use(cors());
 app.use(express.json());
+
+// 静态文件服务 - 用于预览上传的文件
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 健康检查接口
 app.get('/health', (req, res) => {

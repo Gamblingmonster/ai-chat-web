@@ -32,5 +32,17 @@ export const chatApi = {
       method: 'POST',
       body: { prompt }
     });
+  },
+
+  /**
+   * 上传文件
+   */
+  async uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await request('/upload', {
+      method: 'POST',
+      body: formData
+    });
   }
 };

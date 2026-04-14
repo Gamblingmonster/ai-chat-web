@@ -105,3 +105,30 @@ exports.generateImage = async (req, res) => {
         res.status(500).json({ error: 'Image generation failed' });
     }
 };
+
+/**
+ * 文件上传接口
+ */
+exports.uploadFile = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    try {
+        const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+        res.json({
+            message: 'File uploaded successfully',
+            file: {
+                name: req.file.originalname,
+                filename: req.file.filename,
+                path: req.file.path,
+                url: fileUrl,
+                mimetype: req.file.mimetype,
+                size: req.file.size
+            }
+        });
+    } catch (error) {
+        console.error('File upload error:', error);
+        res.status(500).json({ error: 'File upload failed' });
+    }
+};

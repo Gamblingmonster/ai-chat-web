@@ -9,7 +9,8 @@ export const useChatStore = defineStore('chat', {
     currentSessionId: 1,
     loading: false,
     useWebSearch: false, // 联网搜索开关
-    useImageGen: false // 图片生成开关
+    useImageGen: false, // 图片生成开关
+    attachedFile: null // 当前待发送的文件
   }),
   getters: {
     currentSession: (state) => state.sessions.find(s => s.id === state.currentSessionId),
@@ -48,10 +49,28 @@ export const useChatStore = defineStore('chat', {
       }
     },
     async sendMessage(content) {
-      if (!content.trim()) return
+      if (!content.trim() && !this.attachedFile) return
 
-      // 添加用户消息
-      this.addMessage({ role: 'user', content })
+      let uploadedFileData = null;
+      const fileToUpload = this.attachedFile;
+      this.attachedFile = null; // 清空待上传文件状态
+
+      // 如果有文件，先上传
+      if (fileToUpload) {
+        try {
+          const uploadRes = await chatApi.uploadFile(fileToUpload);
+          uploadedFileData = uploadRes.file;
+        } catch (error) {
+          console.error('文件上传失败', error);
+        }
+      }
+
+      // 添加用户消息，包含文件信息
+      this.addMessage({ 
+        role: 'user', 
+        content,
+        file: uploadedFileData 
+      })
       this.loading = true
 
       // 添加一个助手消息，初始状态为思考中
@@ -74,6 +93,13 @@ export const useChatStore = defineStore('chat', {
 
         // 使用 JSON 序列化实现深拷贝，避免修改原消息内容
         let finalMessages = JSON.parse(JSON.stringify(this.messages.slice(0, -1)))
+
+        // 如果有文件，在 Prompt 中加入文件信息
+        if (uploadedFileData) {
+          const lastUserMsg = finalMessages[finalMessages.length - 1];
+          const fileContext = `\n\n[用户上传了文件: ${uploadedFileData.name}, 类型: ${uploadedFileData.mimetype}, 地址: ${uploadedFileData.url}]\n请针对该文件内容或相关信息进行回答。`;
+          lastUserMsg.content += fileContext;
+        }
 
         // 2. 联网搜索逻辑
         if (this.useWebSearch) {
