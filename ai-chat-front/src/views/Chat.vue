@@ -110,7 +110,11 @@
             🎨 生成图片
           </button>
           <!-- 文件选择按钮 -->
-          <button class="tool-btn" @click="triggerFileInput" :disabled="loading">
+          <button 
+            :class="['tool-btn', { disabled: loading || useImageGen }]" 
+            @click="triggerFileInput" 
+            :disabled="loading || useImageGen"
+          >
             📁 上传文件
           </button>
           <input 
